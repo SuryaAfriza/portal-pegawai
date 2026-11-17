@@ -8,7 +8,7 @@
                 </div>
                 <div>
                     <div class="text-muted small fw-medium">Total Seluruh Pegawai</div>
-                    <h4 class="fw-bold mb-0"><?= count(\$semuaPegawai) ?> Orang</h4>
+                    <h4 class="fw-bold mb-0"><?= count($semuaPegawai) ?> Orang</h4>
                 </div>
             </div>
         </div>
@@ -21,7 +21,7 @@
                 </div>
                 <div>
                     <div class="text-muted small fw-medium">Pegawai Laki-laki</div>
-                    <h4 class="fw-bold mb-0"><?= \$statistik['gender']['Laki-laki'] ?? 0 ?> Orang</h4>
+                    <h4 class="fw-bold mb-0"><?= $statistik['gender']['Laki-laki'] ?? 0 ?> Orang</h4>
                 </div>
             </div>
         </div>
@@ -34,7 +34,7 @@
                 </div>
                 <div>
                     <div class="text-muted small fw-medium">Pegawai Perempuan</div>
-                    <h4 class="fw-bold mb-0"><?= \$statistik['gender']['Perempuan'] ?? 0 ?> Orang</h4>
+                    <h4 class="fw-bold mb-0"><?= $statistik['gender']['Perempuan'] ?? 0 ?> Orang</h4>
                 </div>
             </div>
         </div>
