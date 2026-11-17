@@ -1,7 +1,7 @@
 <?php
 /**
  * File: index.php
- * Deskripsi: Front-controller utama Portal Manajemen SDM.
+ * Deskripsi: Front-controller utama Portal Manajemen SDM dengan navigasi multi-halaman.
  */
 
 session_start();
@@ -14,6 +14,7 @@ $service  = new PegawaiService($database->getConnection());
 
 $errors      = [];
 $editPegawai = null;
+$page        = $_GET['page'] ?? 'dashboard';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $aksi = $_POST['aksi'] ?? '';
@@ -25,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $_SESSION['notif'] = ['tipe' => 'danger', 'pesan' => 'Gagal menghapus data pegawai.'];
         }
-        header('Location: index.php');
+        header('Location: index.php?page=pegawai');
         exit;
     }
 
@@ -41,17 +42,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $service->tambah($pegawaiObj);
                     $_SESSION['notif'] = ['tipe' => 'success', 'pesan' => 'Pegawai baru berhasil ditambahkan.'];
                 }
-                header('Location: index.php');
+                header('Location: index.php?page=pegawai');
                 exit;
             } catch (PDOException $e) {
                 $errors[] = 'Gagal menyimpan data: Pastikan NIP belum digunakan pegawai lain.';
+                $page = 'form';
             }
+        } else {
+            $page = 'form';
         }
     }
 }
 
 if (isset($_GET['edit_id'])) {
     $editPegawai = $service->ambilBerdasarkanId((int) $_GET['edit_id']);
+    $page = 'form';
 }
 
 $kataKunci     = trim($_GET['cari'] ?? '');
@@ -61,59 +66,94 @@ $statistik     = $service->hitungStatistikDashboard($semuaPegawai);
 
 $notif = $_SESSION['notif'] ?? null;
 unset($_SESSION['notif']);
+
+$judulHalaman = [
+    'dashboard' => 'Dashboard Analitik Pegawai',
+    'pegawai'   => 'Manajemen Data Pegawai',
+    'form'      => $editPegawai ? 'Edit Data Pegawai' : 'Tambah Pegawai Baru',
+][$page] ?? 'Dashboard Analitik Pegawai';
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal SDM — Sistem Manajemen Data Pegawai</title>
+    <title><?= e($judulHalaman) ?> — Portal SDM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="public/css/style.css" rel="stylesheet">
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm py-3 mb-4">
-    <div class="container">
-        <a class="navbar-brand d-flex align-items-center gap-2" href="index.php">
-            <i class="bi bi-buildings-fill text-success"></i>
-            <span>PORTAL SDM <small class="fw-normal text-secondary fs-6">| Manajemen Pegawai</small></span>
+<div class="admin-wrapper">
+    <!-- Sidebar Navigasi Kiri -->
+    <aside class="sidebar">
+        <a href="index.php?page=dashboard" class="sidebar-brand d-flex align-items-center gap-2">
+            <i class="bi bi-buildings-fill text-success fs-4"></i>
+            <span>PORTAL SDM</span>
         </a>
-        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
-            Total Aktif: <?= count($semuaPegawai) ?> Pegawai
-        </span>
-    </div>
-</nav>
 
-<div class="container pb-5">
-    <?php if ($notif): ?>
-        <div class="alert alert-<?= e($notif['tipe']) ?> alert-dismissible fade show shadow-sm" role="alert">
-            <i class="bi bi-check-circle-fill me-1"></i> <?= e($notif['pesan']) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
+        <nav class="sidebar-nav">
+            <div class="text-uppercase text-secondary fw-bold px-3 mb-2" style="font-size: 0.7rem; letter-spacing: 0.8px;">
+                Menu Utama
+            </div>
+            <a href="index.php?page=dashboard" class="nav-item-link <?= $page === 'dashboard' ? 'active' : '' ?>">
+                <i class="bi bi-pie-chart-fill"></i>
+                <span>Dashboard Grafik</span>
+            </a>
+            <a href="index.php?page=pegawai" class="nav-item-link <?= $page === 'pegawai' ? 'active' : '' ?>">
+                <i class="bi bi-people-fill"></i>
+                <span>Data Pegawai</span>
+            </a>
+            <a href="index.php?page=form" class="nav-item-link <?= $page === 'form' ? 'active' : '' ?>">
+                <i class="bi bi-person-plus-fill"></i>
+                <span><?= $editPegawai ? 'Edit Pegawai' : 'Tambah Pegawai' ?></span>
+            </a>
+        </nav>
 
-    <?php if (!empty($errors)): ?>
-        <div class="alert alert-danger shadow-sm">
-            <strong>Periksa kembali input Anda:</strong>
-            <ul class="mb-0 mt-1">
-                <?php foreach ($errors as $err): ?>
-                    <li><?= e($err) ?></li>
-                <?php endforeach; ?>
-            </ul>
+        <div class="p-3 border-top border-secondary border-opacity-25 small text-secondary">
+            <i class="bi bi-shield-check text-success me-1"></i> Sistem Aktif &bull; <?= count($semuaPegawai) ?> SDM
         </div>
-    <?php endif; ?>
+    </aside>
 
-    <?php require __DIR__ . '/views/dashboard_charts.php'; ?>
+    <!-- Area Konten Utama -->
+    <div class="main-content">
+        <header class="topbar d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold text-dark"><?= e($judulHalaman) ?></h5>
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                <i class="bi bi-database-check me-1"></i> Total: <?= count($semuaPegawai) ?> Pegawai
+            </span>
+        </header>
 
-    <div class="row g-4">
-        <div class="col-lg-4">
-            <?php require __DIR__ . '/views/form_pegawai.php'; ?>
-        </div>
-        <div class="col-lg-8">
-            <?php require __DIR__ . '/views/tabel_pegawai.php'; ?>
-        </div>
+        <main class="p-4">
+            <?php if ($notif): ?>
+                <div class="alert alert-<?= e($notif['tipe']) ?> alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="bi bi-check-circle-fill me-1"></i> <?= e($notif['pesan']) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($errors)): ?>
+                <div class="alert alert-danger shadow-sm">
+                    <strong>Periksa kembali input Anda:</strong>
+                    <ul class="mb-0 mt-1">
+                        <?php foreach ($errors as $err): ?>
+                            <li><?= e($err) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+
+            <?php
+            if ($page === 'pegawai') {
+                require __DIR__ . '/views/tabel_pegawai.php';
+            } elseif ($page === 'form') {
+                require __DIR__ . '/views/form_pegawai.php';
+            } else {
+                require __DIR__ . '/views/dashboard_charts.php';
+            }
+            ?>
+        </main>
     </div>
 </div>
 
